@@ -1,47 +1,49 @@
-/* 
-==================================================================
-DDL SCRIPT: Create Bronze Tables
-==================================================================
-Script Purpose:
-this script creates tables in the 'bronze' schema, dropping exsisting tables if they already exist.
-Run this script to re-define the DDL structure of 'bronze' Tables
+/*
+=========================================================================
+ETL Script: Load Bronze Layer
+=========================================================================
+
+Purpose:
+This script populates the Bronze layer tables in the DataWarehouse database.
+It performs the following actions for each table in the 'bronze' schema:
+
+1. Truncates the existing table data to ensure a fresh load.
+2. Loads raw data from CSV files into the corresponding Bronze tables using BULK INSERT.
+3. Measures and prints the time taken for each table load.
+4. Handles errors using TRY...CATCH and logs error messages if any occur.
+
+Notes:
+- This script assumes that all Bronze tables have been created already (DDL is managed separately).
+- CSV files must exist in the specified file paths.
+- Designed for repeatable batch loads of raw data.
 =========================================================================
 */
 
 /* =========================
    CREATE BRONZE LAYER LOADING PROCEDURE
 ========================= */
+
 CREATE OR ALTER PROCEDURE bronze.load_bronze
 AS
 BEGIN
 
-        DECLARE @start_time DATETIME, @end_time DATETIME, @batch_start_time DATETIME, @batch_end_time DATETIME;
+    DECLARE 
+        @start_time DATETIME,
+        @end_time DATETIME,
+        @batch_start_time DATETIME,
+        @batch_end_time DATETIME;
 
     BEGIN TRY
-    
-    SET @batch_start_time = GETDATE();
+        
+        SET @batch_start_time = GETDATE();
+
         PRINT '==========================';
         PRINT 'Loading Bronze Layer...';
         PRINT '==========================';
 
-        /* =========================
-           CRM CUSTOMER INFO
-        ========================= */
-        SET @start_time = GETDATE();
+        /* CRM CUSTOMER */
         PRINT 'Loading CRM Customer Info...';
-
-        IF OBJECT_ID('bronze.crm_cust_info', 'U') IS NOT NULL
-            DROP TABLE bronze.crm_cust_info;
-
-        CREATE TABLE bronze.crm_cust_info (
-            cst_id INT,
-            cst_key VARCHAR(50),
-            cst_firstname VARCHAR(50),
-            cst_lastname VARCHAR(50),
-            cst_material_status VARCHAR(50),
-            cst_gendr NVARCHAR(50),
-            cst_create_date DATE
-        );
+        TRUNCATE TABLE bronze.crm_cust_info;
 
         BULK INSERT bronze.crm_cust_info
         FROM 'C:\temp\source_crm\cust_info.csv'
@@ -52,28 +54,9 @@ BEGIN
             TABLOCK
         );
 
-        SET @end_time = GETDATE();
-        PRINT 'CRM Customer Info loaded in ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' sec';
-
-
-        /* =========================
-           CRM PRODUCT INFO
-        ========================= */
-        SET @start_time = GETDATE();
+        /* CRM PRODUCT */
         PRINT 'Loading CRM Product Info...';
-
-        IF OBJECT_ID('bronze.crm_prd_info', 'U') IS NOT NULL
-            DROP TABLE bronze.crm_prd_info;
-
-        CREATE TABLE bronze.crm_prd_info (
-            prd_id INT,
-            prd_key NVARCHAR(50),
-            prd_nm NVARCHAR(50),
-            prd_cost INT,
-            prd_line NVARCHAR(50),
-            prd_start_dt DATETIME,
-            prd_end_dt DATETIME
-        );
+        TRUNCATE TABLE bronze.crm_prd_info;
 
         BULK INSERT bronze.crm_prd_info
         FROM 'C:\temp\source_crm\prd_info.csv'
@@ -84,30 +67,9 @@ BEGIN
             TABLOCK
         );
 
-        SET @end_time = GETDATE();
-        PRINT 'CRM Product Info loaded in ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' sec';
-
-
-        /* =========================
-           CRM SALES DETAILS
-        ========================= */
-        SET @start_time = GETDATE();
+        /* CRM SALES */
         PRINT 'Loading CRM Sales Details...';
-
-        IF OBJECT_ID('bronze.crm_sales_details', 'U') IS NOT NULL
-            DROP TABLE bronze.crm_sales_details;
-
-        CREATE TABLE bronze.crm_sales_details (
-            sls_ord_num NVARCHAR(50),
-            sls_prd_key NVARCHAR(50),
-            sls_cust_id INT,
-            sls_order_dt INT,
-            sls_ship_dt INT,
-            sls_due_dt INT,
-            sls_sales INT,
-            sls_quantity INT,
-            sls_price INT
-        );
+        TRUNCATE TABLE bronze.crm_sales_details;
 
         BULK INSERT bronze.crm_sales_details
         FROM 'C:\temp\source_crm\sales_details.csv'
@@ -118,24 +80,9 @@ BEGIN
             TABLOCK
         );
 
-        SET @end_time = GETDATE();
-        PRINT 'CRM Sales loaded in ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' sec';
-
-
-        /* =========================
-           ERP CUSTOMER
-        ========================= */
-        SET @start_time = GETDATE();
+        /* ERP CUSTOMER */
         PRINT 'Loading ERP Customer...';
-
-        IF OBJECT_ID('bronze.erp_cust_az12', 'U') IS NOT NULL
-            DROP TABLE bronze.erp_cust_az12;
-
-        CREATE TABLE bronze.erp_cust_az12 (
-            cid NVARCHAR(50),
-            bdate DATE,
-            gen NVARCHAR(50)
-        );
+        TRUNCATE TABLE bronze.erp_cust_az12;
 
         BULK INSERT bronze.erp_cust_az12
         FROM 'C:\temp\source_erp\CUST_AZ12.CSV'
@@ -146,23 +93,9 @@ BEGIN
             TABLOCK
         );
 
-        SET @end_time = GETDATE();
-        PRINT 'ERP Customer loaded in ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' sec';
-
-
-        /* =========================
-           ERP LOCATION
-        ========================= */
-        SET @start_time = GETDATE();
+        /* ERP LOCATION */
         PRINT 'Loading ERP Location...';
-
-        IF OBJECT_ID('bronze.erp_loc_a101', 'U') IS NOT NULL
-            DROP TABLE bronze.erp_loc_a101;
-
-        CREATE TABLE bronze.erp_loc_a101 (
-            cid NVARCHAR(50),
-            cntry NVARCHAR(50)
-        );
+        TRUNCATE TABLE bronze.erp_loc_a101;
 
         BULK INSERT bronze.erp_loc_a101
         FROM 'C:\temp\source_erp\LOC_A101.CSV'
@@ -173,25 +106,9 @@ BEGIN
             TABLOCK
         );
 
-        SET @end_time = GETDATE();
-        PRINT 'ERP Location loaded in ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' sec';
-
-
-        /* =========================
-           ERP PRODUCT CATEGORY
-        ========================= */
-        SET @start_time = GETDATE();
+        /* ERP CATEGORY */
         PRINT 'Loading ERP Product Category...';
-
-        IF OBJECT_ID('bronze.erp_px_cat_g1v2', 'U') IS NOT NULL
-            DROP TABLE bronze.erp_px_cat_g1v2;
-
-        CREATE TABLE bronze.erp_px_cat_g1v2 (
-            id NVARCHAR(50),
-            cat NVARCHAR(50),
-            subcat NVARCHAR(50),
-            maintenance NVARCHAR(50)
-        );
+        TRUNCATE TABLE bronze.erp_px_cat_g1v2;
 
         BULK INSERT bronze.erp_px_cat_g1v2
         FROM 'C:\temp\source_erp\PX_CAT_G1V2.csv'
@@ -202,28 +119,18 @@ BEGIN
             TABLOCK
         );
 
-        SET @end_time = GETDATE();
-        PRINT 'ERP Product Category loaded in ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' sec';
-
         SET @batch_end_time = GETDATE();
+
         PRINT '==========================';
         PRINT 'Bronze Layer Loaded OK';
-        PRINT 'Total batch time: ' + CAST(DATEDIFF(SECOND, @batch_start_time, @batch_end_time) AS NVARCHAR) + ' sec';
+        PRINT 'Total time: ' + CAST(DATEDIFF(SECOND, @batch_start_time, @batch_end_time) AS NVARCHAR) + ' sec';
         PRINT '==========================';
 
     END TRY
 
     BEGIN CATCH
-        PRINT '❌ ERROR: ' + ERROR_MESSAGE();
-        PRINT 'STATE: ' + CAST(ERROR_STATE() AS NVARCHAR(50));
+        PRINT 'ERROR: ' + ERROR_MESSAGE();
     END CATCH
 
 END
-GO
-
-
-/* =========================
-   EXECUTE PROCEDURE
-========================= */
-EXEC bronze.load_bronze;
 GO
